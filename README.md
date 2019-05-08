@@ -51,7 +51,7 @@ http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/access-log
 1. Fork this repo in github
 2. Complete the processing and analytics as defined first to the best of your ability with the time provided.
 3. Place notes in your code to help with clarity where appropriate. Make it readable enough to present to the PayPay interview team.
-4. Document how you test your solution.
+4. Include the test code and data in your solution. 
 5. Complete your work in your own github repo and send the results to us and/or present them during your interview.
 
 ## What are we looking for? What does this prove?
