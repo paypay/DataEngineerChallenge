@@ -2,7 +2,7 @@
 set -ex
 export PATH="/usr/local/sbt/bin:$PATH"
 cd /data
-gunzip -d 2015_07_22_mktplace_shop_web_log_sample.log.gz
+gunzip -c 2015_07_22_mktplace_shop_web_log_sample.log.gz > 2015_07_22_mktplace_shop_web_log_sample.log
 cd /
 sbt package
 /spark/bin/spark-submit \

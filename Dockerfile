@@ -32,8 +32,4 @@ COPY src /src
 COPY build.sbt /
 COPY data /data
 COPY spark-submit.sh /
-COPY start-slave.sh /spark/sbin/
-COPY start-daemon.sh /spark/sbin/
-RUN chmod +x /spark/sbin/start-slave.sh
-RUN chmod +x /spark/sbin/start-daemon.sh
 CMD ["/bin/bash", "/spark-submit.sh"]

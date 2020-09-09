@@ -18,7 +18,7 @@ services:
       - SPARK_HOME=/spark
     volumes:
       - app-volume:/target/scala-2.12
-      - data:/data
+      - ./data:/data
       - ./logs:/spark/logs
 
   spark-worker-1:
@@ -43,7 +43,7 @@ services:
       - SPARK_HOME=/spark
     volumes:
       - app-volume:/target/scala-2.12
-      - data:/data
+      - ./data:/data
       - ./logs:/spark/logs
 
   spark-worker-2:
@@ -68,7 +68,7 @@ services:
       - SPARK_HOME=/spark
     volumes:
       - app-volume:/target/scala-2.12
-      - data:/data
+      - ./data:/data
       - ./logs:/spark/logs
 
   spark-submit:
@@ -88,9 +88,9 @@ services:
       - SPARK_HOME=/spark
     volumes:
       - app-volume:/target/scala-2.12
-      - data:/data
+      - ./data:/data
       - ./logs:/spark/logs
 
 volumes:
   app-volume:
-  data:
+  # data:
