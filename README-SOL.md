@@ -17,6 +17,8 @@
 
 ## Core Logic
 
+0. I assume ip:port as single user (For users behind NAT, they have same IP but different port number)
+
 1. First make a new column which states if present time and previous time of hhtp request by particular user belong to same session
 
 2. Then take a cumulative some, this will automatically give different number to different rows in different sessions
