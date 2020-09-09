@@ -17,39 +17,25 @@ object DataChallenge {
     							     "received_bytes", "sent_bytes", "request", "user_agent", "ssl_cipher",
     							     "ssl_protocol")
 
-        val sessLogDataDf = logDataDF.select("user", "time", "request").withColumn("time", col("time").cast(TimestampType))
+        val sessLogDataDf = logDataDF.select("user", "time", "request").withColumn("time", col("time").cast(TimestampType)).toDF()
 
         // Assuming each partition is small enough to fit on one exectuor
         val sessTimeout = 15 * 60
         val partByUser = Window.partitionBy("user")
 
-
-        val sessTimeDataDf = sessionizeLogData(sessLogDataDf)
-
-        val userSessUniqLinkCountDf = uniqLinksClickedPerSess(sessTimeDataDf)
-
-        val userSessTimeDF = sessTimeDataDf.select("user","sess_num", "sess_time").distinct
-
-        val mostEngagedUser = mostEngagedUserTotal(userSessTimeDF)
-
-        val averageSessTimeOverall = userSessTimeDF.agg(avg("sess_time")).first()(0)
-
-        val averageSessTimePerUser = userSessTimeDF.withColumn(
-            "avg_sess_time",
-            avg("sess_time").over(partByUser)
-        ).select("user", "avg_sess_time").distinct
-
-        spark.stop()
-    }
-
-    def sessionizeLogData(sessTimeDataDf: DataFrame){
-
+        /*
+        Sessionize log data
+        1. Move time column down by one
+        2. Check if time difference with previous request is less than timeout, then assign 1
+        3. Do a cumulative sum and get session numbers for each user[local]
+        4. start and end time of session are max and min of a session
+        */
         val sessTimeDataDf = sessLogDataDf.withColumn(
             "pre_time",
-            lag("time", 1).over(partByUser.orderBy($"time".asc))
+            lag("time", 1).over(partByUser.orderBy(col("time").asc))
         ).withColumn(
             "next_time",
-            lead("pre_time", 1).over(partByUser.orderBy($"time".asc))
+            lead("pre_time", 1).over(partByUser.orderBy(col("time").asc))
         ).withColumn(
             "new_sess",
             when(
@@ -59,7 +45,7 @@ object DataChallenge {
             ).otherwise(0)
         ).withColumn(
             "sess_num",
-            sum("new_sess").over(partByUser.orderBy($"time".asc))
+            sum("new_sess").over(partByUser.orderBy(col("time").asc))
         ).withColumn(
             "start_sess_time",
             min("time").over(Window.partitionBy("user", "sess_num"))
@@ -71,21 +57,23 @@ object DataChallenge {
             col("end_sess_time").cast(LongType) - col("start_sess_time").cast(LongType)
         )
 
-        return sessTimeDataDf
-    }
 
-    def uniqLinksClickedPerSess(sessTimeDataDf: DataFrame){
-        userSessUniqLinkCountDf = sessTimeDataDf.select(
+        /*
+        Unique links clicked per session
+        */
+        val userSessUniqLinkCountDf = sessTimeDataDf.select(
            "user", "sess_num", "request"
         ).distinct.withColumn(
             "total_unique_url_per_sess",
             count("request").over(Window.partitionBy("user", "sess_num"))
         ).select("user", "sess_num", "total_unique_url_per_sess").distinct
 
-        return userSessUniqLinkCountDf
-    }
+        val userSessTimeDF = sessTimeDataDf.select("user","sess_num", "sess_time").distinct
 
-    def mostEngagedUserTotal(){
+
+        /*
+        Calulate most engaged user by calculating total session time for each user and return max
+        */
         val totalSessTimeDf = userSessTimeDF.withColumn(
             "total_sess_time",
             sum("sess_time").over(partByUser)
@@ -100,7 +88,43 @@ object DataChallenge {
             col("total_sess_time").cast(LongType) === maxTotalSessTime
         ).select("user").distinct
 
-        return mostEngagedUser
+
+        /*
+        Average session time per user
+        */
+        val averageSessTimeOverall = userSessTimeDF.agg(avg("sess_time")).first()(0)
+
+        val averageSessTimePerUser = userSessTimeDF.withColumn(
+            "avg_sess_time",
+            avg("sess_time").over(partByUser)
+        ).select("user", "avg_sess_time").distinct
+
+
+        /*
+        Saving relevant stdout
+        */
+        userSessUniqLinkCountDf.coalesce(1).write
+        .format("csv")
+        .option("header", "true")
+        .mode("overwrite")
+        .option("sep",",")
+        .save("/data/userSessUniqLinkCountDf")
+
+        mostEngagedUser.coalesce(1).write
+        .format("csv")
+        .option("header", "true")
+        .mode("overwrite")
+        .option("sep",",")
+        .save("/data/mostEngagedUser")
+
+        averageSessTimePerUser.coalesce(1).write
+        .format("csv")
+        .option("header", "true")
+        .mode("overwrite")
+        .option("sep",",")
+        .save("/data/averageSessTimePerUser")
+
+        spark.stop()
     }
 
 }
