@@ -26,9 +26,15 @@ By running the command above, we'll get a CSV file like this ready to be importe
 1437555628055,101.60.186.26,https://paytm.com:443/favicon.ico
 ```
 
+The timestamp in original data is accurate to nanoseconds. Transforming it to timestamp in milliseconds at this step reduces accuracy.
+
+Milliseconds should be enough for analyzing user behaviour.
+
 ```bash
 # Upload CSV file to HDFS
-hdfs dfs -put ppchal.csv /tmp/
+$ hdfs dfs -put ppchal.csv /tmp/
+# Start Hive
+$ hive
 ```
 
 HiveQL is used to query and manipulate all the data. It allows user to write SQL-style queries while transforming those commands into actual MapReduce code.
@@ -41,12 +47,16 @@ CREATE TABLE IF NOT EXISTS ppchal (
     url STRING
 )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n' STORED AS TEXTFILE;
+# Although there are other storage formats, to make it simple, plain textfile is used here
 
 # Imports data in to the table
 LOAD DATA INPATH '/tmp/log_cleaned.csv' OVERWRITE INTO TABLE ppchal;
 ```
 
 ## Determine Session
+
+> 1. Sessionize the web log by IP. Sessionize = aggregrate all page hits by visitor/IP during a session.
+> - For this dataset, complete the sessionization by time window rather than navigation.
 
 To identify sessions using time window. Window function might be useful.
 Assuming each IP address is an unique user.
@@ -79,6 +89,17 @@ By marking session starting points, it's now easier to group hits by session.
 To make queries about sesions possible, it's required to identify a session in some way.
 The timestamp of the first hit in the session is defined to be the session ID.
 
+As mentioned previously, accuracy of timestamp is to milliseconds. Sometimes, two hits from a same IP has identical timestamps. This results in both row having `is_sess_start` set to true. Although it might sounds weird, grouping hits into sessions using timestamps prevents such situation being counted as two sessions.
+
+| last_value(ts) -> is_sess_start | ts      | ip       | url | -> | last_value(is_sess_start * ts) -> session_id | 
+| ------------------------------- | ------- | -------- | --- | -- | -------------------------------------------- | 
+| NULL -> 1                       | 1000000 | 10.0.0.1 | foo |    | 1000000                                      | 
+| NULL -> 1                       | 1000000 | 10.0.0.1 | bar |    | 1000000                                      | 
+| 1000000 -> 0                    | 1000001 | 10.0.0.1 | baz |    | 1000000                                      | 
+| 1000001 -> 1                    | 2000000 | 10.0.0.1 | foo |    | 2000000                                      | 
+| 1000001 -> 1                    | 2000000 | 10.0.0.1 | bar |    | 2000000                                      | 
+| 2000000 -> 0                    | 2000001 | 10.0.0.1 | baz |    | 2000000                                      | 
+
 Although there may be many hits coming at the same time from different user, uniqueness is maintained by involving IP address in upcoming queries.
 
 ```sql
@@ -95,7 +116,7 @@ FROM ppchal_with_sess_mark;
 
 > 2. Determine the average session time
 
-Average session time can easily be calculated using aggregation functions.
+Since hits has been grouped into sessions at the previous step. Average session time can easily be calculated using aggregation functions.
 
 ```sql
 WITH t AS (SELECT max(ts) - min(ts) AS duration FROM ppchal_with_sess_id GROUP BY ip, sess_id)
@@ -158,7 +179,7 @@ A session involves around 8.2 hits in average.
 SELECT max(ts) - min(ts) AS duration, count(DISTINCT url), ip, sess_id from ppchal_with_sess_id GROUP BY ip, sess_id ORDER BY duration DESC limit 100;
 ```
 
-Many sessions have long durations as shown.
+Many sessions have durations as long as 34 minutes.
 
 ```
 +-----------+------------------+----------------+
@@ -177,3 +198,23 @@ Many sessions have long durations as shown.
 | 2065587 | 213.239.204.204 | 1437561029067 |
 | 2065520 | 122.15.156.64 | 1437561029904 |
 ```
+
+## Bonus
+
+Identifying unique users using IP addresses may not be a perfect approach, since there may be many users behind the same NAT address, a single user may also be using different IP addresses during a session due to network handovers or switching of connection type.
+
+The concept of "identifying unique users better" lies in finding more uniqueness.
+
+To do so, there may be two kinds of approach.
+
+### If it's only possible to use the given data
+
+User agent strings which disclose users' browser version, operating system, language may help. It could be used to compose a compound key with IP address. By doing so, some users behind the same IP could be seperated from each others.
+
+The downside of this approach is that browser vendors are making user agent strings simpler or even tries to freeze it due to privacy conerns. It may not be that useful in the future.
+
+### If it's possible to collect more data
+
+By generating ID-like cookies and send it to users, we can use it to identify returing users. Although it might expire or be deleted manually, it solves the problem of IP addresses.
+
+If it's possible to run code on client side (browser or app), generating user ID locally is also an approach. Interaction on page or screen can also be recorded as events. By doing so, the length of a session would be more accurate.
