@@ -1,12 +1,13 @@
-package payPay.parser
+package com.paypay.parser
+
+import com.paypay.common.Spark
+import com.paypay.logSchema.{CountPerSession, LogParser, LongestSession, ParsedLogForAnalytics, UniqueUrlPerSession}
 
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
-import payPay.common.Spark
-import payPay.logSchema.{CountPerSession, LogParser, LongestSession, ParsedLogForAnalytics, UniqueUrlPerSession}
 
 object SessionLog extends Spark{
   

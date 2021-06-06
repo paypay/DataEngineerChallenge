@@ -1,4 +1,4 @@
-package payPay.logSchema
+package com.paypay.logSchema
 
 case class CountPerSession(
                           requestIp:String,

@@ -1,4 +1,4 @@
-package payPay.common
+package com.paypay.common
 
 import org.apache.spark.sql.SparkSession
 

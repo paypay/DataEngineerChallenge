@@ -1,11 +1,11 @@
-package payPay.parser
+package com.paypay.parser
 
 import SessionLog.{func_getEPoch, logMapping, logRegex}
+import com.paypay.logSchema.ParsedLogForAnalytics
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 import org.apache.spark.storage.StorageLevel
-import payPay.logSchema.ParsedLogForAnalytics
 
 object Sessions {
   /**

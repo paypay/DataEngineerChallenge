@@ -4,9 +4,9 @@ import sbt._
 
 object Modules {
 
-  val sparkCoreLib = "org.apache.spark" % s"spark-core_$scalaMajorVersion" % s"$sparkVersion" % "provided"
+  val sparkCoreLib = "org.apache.spark" % s"spark-core_$scalaMajorVersion" % s"$sparkVersion"
 
-  val sparkSqlLib = "org.apache.spark" %% "spark-sql" % s"$sparkVersion" % "provided"
+  val sparkSqlLib = "org.apache.spark" %% "spark-sql" % s"$sparkVersion"
 
   val scalaTestLib = "org.scalatest" %% "scalatest" % s"$scalaTest" % "test"
 

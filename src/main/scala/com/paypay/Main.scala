@@ -1,8 +1,8 @@
-package payPay
+package com.paypay
 
+import com.paypay.common.Spark
+import com.paypay.parser.{SessionLog, Sessions}
 import org.apache.spark.sql.SparkSession
-import payPay.common.Spark
-import payPay.parser.{SessionLog, Sessions}
 
 object Main extends Spark {
   def main(args: Array[String]): Unit = {

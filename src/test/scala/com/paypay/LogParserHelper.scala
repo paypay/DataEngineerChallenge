@@ -1,13 +1,12 @@
 package com.paypay
 
+import com.paypay.common.Spark
+import com.paypay.logSchema.{CountPerSession, LongestSession, UniqueUrlPerSession}
+import com.paypay.parser.{SessionLog, Sessions}
 import org.apache.spark.sql.functions.col
-import org.apache.spark.sql.{Dataset, SparkSession}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
-import payPay.common.Spark
-import payPay.logSchema.{CountPerSession, LongestSession, ParsedLogForAnalytics, UniqueUrlPerSession}
-import payPay.parser.SessionLog.{logMapping, logRegex, uniqueUrlPerSession}
-import payPay.parser.{SessionLog, Sessions}
+import com.paypay.parser.SessionLog.{logMapping, logRegex}
 
 class LogParserHelper extends AnyFlatSpec with should.Matchers with Spark {
 
